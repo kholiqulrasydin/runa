@@ -2,8 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:runa/screens/masakan.dart';
+import 'package:runa/services/api/makanan.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+
+import 'package:runa/screens/submit.dart';
 
 class HomeScreen extends StatefulWidget {
   final String name;
@@ -14,9 +17,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String logState = "Coba ucap 'hai!'";
+  String logState = "Coba ucap 'hai!\natau tahan dan tekan untuk manual'";
   FlutterTts flutterTts = FlutterTts();
-
+  bool makananRingan = false;
+  bool order = false;
+  List<String> bahan = [];
+  bool goreng = false;
 
   SpeechToText _speechToText = SpeechToText();
   bool _speechEnabled = false;
@@ -87,13 +93,64 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// This is the callback that the SpeechToText plugin calls when
   /// the platform returns recognized words.
-  void _onSpeechResult(SpeechRecognitionResult result) {
+  void _onSpeechResult(SpeechRecognitionResult result) async {
     print("Voice Recognition Started");
     setState(() {
       _lastWords = result.recognizedWords;
     });
+    if(_lastWords.length > 10 && order && _lastWords.toLowerCase() == "iya punya"){
+      setState(() {
+        bahan.add("minyak goreng");
+        goreng = true;
+      });
+      String question = "Oke, aku mempunyai beberapa saran makanan";
+      _speak(question);
+      makananSuggestion(makananRingan, bahan, goreng ? 'digoreng' : 'ditumis');
+    }
+    if(order == true && _lastWords.length > 5){
+      List<String> b = _lastWords.split(' ');
+      setState(() {
+        bahan = b;
+      });
+      String question = "Apakah kamu mempunyai minyak goreng?";
+      await _speak(question).then((value) => _beginConversation());
+    }
+    if(_lastWords.toLowerCase() == "aku ingin makanan berat"){
+      setState(() {
+        makananRingan = false;
+        order = true;
+      });
+      String dependency = "Sebutkan bahan-bahan makanan yang kamu punya, kecuali minyak goreng";
+      await _speak(dependency);
+      _beginConversation();
+    }
+    if(_lastWords.toLowerCase() == "aku ingin makanan ringan"){
+      setState(() {
+        makananRingan = true;
+        order = true;
+      });
+      String dependency = "Sebutkan bahan-bahan makanan yang kamu punya, kecuali minyak goreng";
+      await _speak(dependency);
+      _beginConversation();
+    }
+    if(_lastWords.toLowerCase() == "iya makanan ringan"){
+      setState(() {
+        makananRingan = true;
+        order = true;
+      });
+      String dependency = "Sebutkan bahan-bahan makanan yang kamu punya, kecuali minyak goreng";
+      await _speak(dependency);
+      _beginConversation();
+    }
     if(_lastWords.toLowerCase() == "hai"){
-      _speak("Halo ${widget.name}");
+      setState(() {
+        bahan = [];
+        order = false;
+      });
+      await _speak("Halo ${widget.name}");
+      String question = "Apakah kamu ingin makanan ringan?";
+      logStateSet(question);
+      await _speak(question);
       _beginConversation();
     }else{
       setState(() {
@@ -102,13 +159,13 @@ class _HomeScreenState extends State<HomeScreen> {
       logStateSet("Ketuk untuk membangunkan runa");
       runasShadowSet(0);
     }
-    if(_lastWords.toLowerCase() == "apa yang harus aku lakukan sekarang"){
-      _speak("Tidur");
+    if(_lastWords.toLowerCase() == "apa yang harus aku lakukan sekarang" && !order){
+      await _speak("Tidur");
       _beginConversation();
       // _stop();
     }
-    if(_lastWords.toLowerCase() == "baiklah"){
-      _speak("Selamat Tidur!");
+    if(_lastWords.toLowerCase() == "baiklah" && !order){
+      await _speak("Selamat Tidur!");
       logStateSet("Ketuk untuk membangunkan runa");
       runasShadowSet(0);
       setState(() {
@@ -116,8 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
 
-    if(_lastWords.toLowerCase() == "nice"){
-      _speak("Hari ini menyenangkan ya!");
+    if(_lastWords.toLowerCase() == "nice" && !order){
+      await _speak("Hari ini menyenangkan ya!");
       logStateSet("Ketuk untuk membangunkan runa");
       runasShadowSet(0);
       setState(() {
@@ -126,14 +183,14 @@ class _HomeScreenState extends State<HomeScreen> {
       willPop();
     }
 
-    if(_lastWords.toLowerCase() == "telur minyak goreng garam"){
-      _speak("Telor Ceplok pas buat kamu!");
+    if(_lastWords.toLowerCase() == "telur minyak goreng garam" && !order){
+      await _speak("Telor Ceplok pas buat kamu!");
       logStateSet("Ketuk untuk membangunkan runa");
       runasShadowSet(0);
       setState(() {
         _speechEnabled = false;
       });
-      makananSuggestion();
+      makananSuggestion(true, ['telur', 'minyak goreng', 'garam'], 'digoreng');
     }
 
   }
@@ -206,14 +263,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> makananSuggestion() async {
+  Future<void> makananSuggestion(bool isRingan, List<String> bahan, String caraMasak) async {
     setState(() {
       _speechEnabled = false;
       shadowRadius = 0;
       logState = "Ketuk untuk membangunkan runa";
       _speechToText.stop();
     });
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) => MakananList()));
+    await MakananApi.getRecommendedFoodRanking(isRingan, bahan, caraMasak)
+        .then((value) => Navigator.of(context).push(MaterialPageRoute(builder: (context) => MakananList(makananRanked: value,))));
   }
 
   Future<bool> willPop() async {
@@ -242,6 +300,10 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 GestureDetector(
+                  onLongPress: (){
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => Submit()));
+                  },
                   onTap: _beginConversation,
                   child: Container(
                     width: width(50),

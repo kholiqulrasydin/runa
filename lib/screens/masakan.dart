@@ -1,16 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:runa/services/api/makanan.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:runa/services/models/makanan.dart';
 
-class MakananList extends StatelessWidget {
-  MakananList({Key? key}) : super(key: key);
-  List<Makanan> _makanans = [
-    Makanan(imageUrl: "assets/telorceplok.jpg", uid: "8gbNhKhljs", nama: "Telor Ceplok", bahan: ["Telor", "Minyak Goreng", "Garam"], saran: 4.5),
-    Makanan(imageUrl: "assets/telorceplok.jpg", uid: "7yBgDfkL56", nama: "Telor Dadar", bahan: ["Telor", "Minyak Goreng", "Garam"], saran: 4),
-    Makanan(imageUrl: "assets/telorceplok.jpg", uid: "12CvbNmh79", nama: "Telor Dadar Daun Bawang", bahan: ["Telor", "Minyak Goreng", "Garam", "Daun Bawang"], saran: 3.5),
-    Makanan(imageUrl: "assets/telorceplok.jpg", uid: "098nMtg&6j", nama: "Telor Gulung Sosis", bahan: ["Telor", "Minyak Goreng", "Garam", "Sosis"], saran: 3),
-    Makanan(imageUrl: "assets/telorceplok.jpg", uid: "07BhgfDguk", nama: "Martabak", bahan: ["Telor", "Minyak Goreng", "Garam", "Daun Bawang", "Daging", "Kaldu / Penyedap", "Tepung Terigu"], saran: 2),
-  ];
+class MakananList extends StatefulWidget {
+  final List<Map<String, dynamic>> makananRanked;
+  MakananList({Key? key, required this.makananRanked}) : super(key: key);
+
+  @override
+  State<MakananList> createState() => _MakananListState();
+}
+
+class _MakananListState extends State<MakananList> {
+  List<Makanan> _makanans = [];
+  bool loading = false;
+
+  setLoading(){
+    setState(() {
+      loading = !loading;
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    getMakananList();
+  }
+
+  loadingIstrue(){
+    setState(() {
+      loading = true;
+    });
+  }
+
+  Future<void> getMakananList() async {
+    setLoading();
+    firebase_storage.FirebaseStorage _storage = firebase_storage.FirebaseStorage.instance;
+    List<Map<String, dynamic>> _rankedList = widget.makananRanked;
+    List<Makanan> _makananList = [];
+    List<Makanan> makanan = await MakananApi.getData();
+    _rankedList.forEach((e) async {
+      Makanan mItem = makanan.firstWhere((element) => element.uid == e['uid']);
+        String imageDownloadUrl = await _storage.ref(mItem.imageUrl).getDownloadURL();
+        print(imageDownloadUrl.toString());
+        Makanan item = Makanan(nama: mItem.nama, imageUrl: imageDownloadUrl, bahan: mItem.bahan, saran: (_rankedList.length) + 0.0, uid: mItem.uid, jenisMakanan: mItem.jenisMakanan, caraMasak: mItem.caraMasak);
+        setState(() {
+          _makanans.add(item);
+        });
+        _makananList.add(item);
+    });
+    print('jumlah makanan '+_makananList.length.toString());
+
+    if(_makananList.isNotEmpty){
+      setState(() {
+        _makanans = _makananList;
+      });
+      setLoading();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +83,7 @@ class MakananList extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: width(5)),
         width: width(100),
         height: height(100),
-        child: ListView.builder(
+        child: _makanans.isEmpty ? Center(child: CircularProgressIndicator()) : ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics()
             ),
@@ -86,7 +137,7 @@ class _OperationCardState extends State<OperationCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Image.asset(widget.makanan.imageUrl!, width: 50, height: 50,),
+              Image.network(widget.makanan.imageUrl!, width: 50, height: 50,),
               const SizedBox(
                 height: 9,
               ),
@@ -125,14 +176,4 @@ class _OperationCardState extends State<OperationCard> {
       ),
     );
   }
-}
-
-class Makanan{
-  final String ? imageUrl;
-  final String ? uid;
-  final String ? nama;
-  final List ? bahan;
-  final double ? saran;
-
-  Makanan({this.imageUrl, this.uid, this.nama, this.bahan, this.saran});
 }

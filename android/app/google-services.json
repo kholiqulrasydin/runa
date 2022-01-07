@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1088569186177",
+    "project_id": "runa-121221",
+    "storage_bucket": "runa-121221.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1088569186177:android:f7e6188409366b6f617a80",
+        "android_client_info": {
+          "package_name": "com.sevengreat.runa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1088569186177-kctsdksuiq94bdaepl8qua9p11kfvtd3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sevengreat.runa",
+            "certificate_hash": "10c6d6518af415a85242e6159173241de9dcdc51"
+          }
+        },
+        {
+          "client_id": "1088569186177-p2q6tajsif0qsh07a0ifrklt3sbd5c6s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLO-7idIiqQ8XbXEAcru25GVtY8VX-Qgk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1088569186177-p2q6tajsif0qsh07a0ifrklt3sbd5c6s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
